@@ -7,10 +7,7 @@ output: html_document
 
 The dataset by proposed by Jimmy Ng, the details can be found [here](https://bbhosted.cuny.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_1705327_1&nav=discussion_board&conf_id=_1845526_1&forum_id=_1891187_1&message_id=_31262338_1).
 
-For simplicity, let's just focus on temperature and individual months. "Month" as a categorical variable is broken into twelve columns, and majority of cells in the table contains both Fahrenheit and Celsius values.  This is a "wide" structure, but we can transform it with tidyr::gather() to make it "long". Once we "gather" the columns, we can extract and split the values into Fahrenheit and Celsius by using the tidyr::separate(). Subsequently, we can "gather" the two columns (i.e. Fahrenheit, Celsius) into one and call it "temperature_scale". 
-
-We can perform some EDA on this data frame, such as what is the average hottest/coldest month in degree Celsius, and then we can use ggplot2 to create simple visualization to aid our analysis, e.g. barplot or dotplot to sort and line up the month by temperature. 
-
+For the state of New York, the average maximum temperature is about 33.5°C and occurs in July. The lowest is -21.7°C in January.
 
 
 ```{r setup, include=FALSE}
@@ -29,23 +26,61 @@ df <-
   read_html("https://en.wikipedia.org/wiki/Climate_of_New_York") %>%         
   html_nodes("table") %>%
     .[[3]] %>%        
-  html_table(trim = TRUE)
+  html_table(trim = TRUE) 
 ```
 
 ```{r}
 df2 <- df[1:15,] %>% 
-  setNames(as.character(df[1,])) %>% 
-  rename(Measure = Month) %>% 
+  setNames(as.character(df[1,])) %>% #Replace names with first column
+  rename(Measure = Month) %>% #Rename column
   filter(str_detect(Measure,"(°C)")) %>% 
   gather("Month","Temp",2:13) %>% 
-  separate(Temp, into = c("F", "C"),sep = "\\(") %>% 
+  separate(Temp, into = c("F", "C"),sep = "\\(") %>% #Put temp scales in different columns
   mutate(C = str_replace(C, "\\)", "")) %>% 
   mutate(Measure = str_replace(Measure, "°F \\(°C\\)", "")) %>% 
   gather("Scale","Temp",4:5) %>% 
-  mutate(Temp = type.convert(Temp)) %>% 
+  #mutate(Temp = type.convert(Temp)) %>% 
   select (-c(Year))
 
 head(df2)
 ```
 
+```{r}
+numextract <- function(string){ 
+  str_extract(string, "\\-*\\d+\\.*\\d*")
+} 
+
+#Extraction of numbers from a character string. (n.d.). Retrieved March 10, 2019, from http://stla.github.io/stlapblog/posts/Numextract.html
+```
+
+
+```{r}
+dash <- substring(df2$Temp[7],1,1)
+
+df3 <- 
+  df2 %>% 
+    filter(str_detect(Measure, "Mean maximum") | str_detect(Measure, "Mean minimum")) %>% 
+    filter(Scale == "C") %>% 
+    mutate(Temp = ifelse(substring(Temp,1,1) == dash,as.numeric(numextract(Temp))*(-1), as.numeric(numextract(Temp))))
+
+(df3)
+```
  
+```{r}
+# Line plot with multiple groups
+ggplot(data=df3, aes(x=Month, y=Temp, group=Measure)) +
+  scale_x_discrete(limits = month.abb)+
+  labs(title = "Temperatures of the State of New York",
+       subtitle = "Average Maximum & Minimum (°C)",
+       caption = "Source: Wikipedia contributors", 
+       x = "Month", y = "Average Temperature (°C)")+
+  theme(legend.position = "none") +
+  geom_line(aes(colour=Measure, group=Measure))
+  #geom_line(aes(color=Measure))+
+  #geom_line()
+```
+ 
+ 
+ 
+ 
+ Wikipedia contributors. "Climate of New York." Wikipedia, The Free Encyclopedia. Wikipedia, The Free Encyclopedia, 8 Mar. 2019. Web. 10 Mar. 2019.

@@ -5,11 +5,15 @@ date: "March 9, 2019"
 output: html_document
 ---
 
-The dataset by proposed by Sunny Mehta, the details can be found[here](https://bbhosted.cuny.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_1705327_1&nav=discussion_board&conf_id=_1845526_1&forum_id=_1891187_1&message_id=_31286554_1).
+The dataset by proposed by Sunny Mehta, the details can be found [here](https://bbhosted.cuny.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_1705327_1&nav=discussion_board&conf_id=_1845526_1&forum_id=_1891187_1&message_id=_31286554_1).
 
 From the histogram, we can see that the overall distribution of rental prices is right skewed. if we then look and the ranked barplot, we see that a few locations have much higher rent prices than the rest of the country.
 
 If we look at the yearly changes we find that New York experienced the sharpest drop in prices (-17.5%) and Wyoming increased the most (8.8%).
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(error = TRUE)
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -30,7 +34,7 @@ mdb <- DBI::dbConnect(RMySQL::MySQL(),
   dbname='project2db',
   host = "35.224.164.217",
   user = "root",
-  password = rstudioapi::askForPassword("Database password")
+  password = "2Password"#rstudioapi::askForPassword("Database password")
 )
 
 #code borrowed from https://dbplyr.tidyverse.org/articles/dbplyr.html
