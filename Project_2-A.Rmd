@@ -1,0 +1,87 @@
+---
+title: "Project_2A - Report Card"
+author: "Fernando Figueres"
+date: "March 9, 2019"
+output: html_document
+---
+
+The dataset by proposed by Sheryl Piechocki, the details can be found [here](https://bbhosted.cuny.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_1705327_1&nav=discussion_board&conf_id=_1845526_1&forum_id=_1891187_1&message_id=_31271363_1).
+
+
+Based on the data we've analyzed the student has maintained an overall grade above 90% with her best performance on ACT Prep matreial which has an overall of 94.34%. This is spite of the poor performance during chapter 1 in which she scored 60% which was her lowest grade so far. It is encouraging to see that she improved her overall grade for the second trimester by almost 7%.
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library imports}
+suppressMessages(library(tidyverse))
+```
+
+```{r Tidy}
+repcard <- 
+  read_csv("repcard.csv", #import the csv file into a df
+           col_types = 
+             cols(
+              `ACT Prep` = "i",
+              Chapter = "i", 
+              Classwork = "i", 
+              Writing = "i"), 
+           skip = 1) %>%
+  as_tibble() %>% # Convert to a tibble
+  mutate(Trimester = ifelse(Chapter < 5,1,2)) %>% #Add trimester as a variable
+  rename(ACT_prep = `ACT Prep`) %>% #rename variable
+  filter(!is.na(Chapter)) %>% #Remove NA values
+  select(Trimester, everything()) %>% #Set Trimester as first variable
+  gather("Component","Grade",3:5) #Set grade components as rows
+```
+
+```{r Chart Grade by Chapter  Component}
+p <- ggplot(repcard, aes(x = Component, y = Grade, fill = Component))
+p <- p + ggtitle("Grade by Chapter & Component")
+p <- p + theme(legend.position = "bottom")
+p <- p + geom_bar(stat = "identity", width = 0.95, position = "stack")
+p <- p + facet_grid(. ~ Chapter)
+p <- p + theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+p
+```
+
+```{r}
+p <- ggplot(data = repcard, aes(x = Chapter, y = Grade, fill = Component))
+p <- p + ggtitle("Grade by Chapter & Component")
+#p <- p + scale_y_continuous(labels = scales::percent)
+p <- p + theme(legend.position = "none")
+#p <- p + scale_fill_manual(values=c('#01426A','#8D0013'))
+p <- p + geom_bar(stat = "identity", width = 0.95)
+p <- p + facet_grid(. ~ Component)
+p
+```
+
+```{r Grades by Component}
+grades_by_c <- repcard %>%
+  group_by(Component) %>%
+  summarise(avg_grade = mean(Grade))
+
+(grades_by_c)
+```
+
+
+```{r Grades by Chapter}
+grades_by_chp <- repcard %>%
+  group_by(Chapter) %>%
+  summarise(avg_grade = mean(Grade))
+
+(grades_by_chp)
+```
+
+```{r Grades by Trimester}
+grades_by_tri <- repcard %>%
+  group_by(Trimester) %>%
+  summarise(avg_grade = mean(Grade))
+
+(grades_by_tri)
+```

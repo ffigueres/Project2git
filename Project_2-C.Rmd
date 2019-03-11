@@ -1,0 +1,107 @@
+---
+title: "Project_2C - Median Rental Price/sqft by State"
+author: "Fernando Figueres"
+date: "March 9, 2019"
+output: html_document
+---
+
+The dataset by proposed by Sunny Mehta, the details can be found[here](https://bbhosted.cuny.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_1705327_1&nav=discussion_board&conf_id=_1845526_1&forum_id=_1891187_1&message_id=_31286554_1).
+
+From the histogram, we can see that the overall distribution of rental prices is right skewed. if we then look and the ranked barplot, we see that a few locations have much higher rent prices than the rest of the country.
+
+If we look at the yearly changes we find that New York experienced the sharpest drop in prices (-17.5%) and Wyoming increased the most (8.8%).
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##Import and Tidying
+
+```{r}
+suppressMessages(library(tidyverse))
+suppressMessages(library(lubridate))
+suppressMessages(library(RMySQL))
+```
+
+
+```{r Connect to Database}
+mdb <- DBI::dbConnect(RMySQL::MySQL(),
+  dbname='project2db',
+  host = "35.224.164.217",
+  user = "root",
+  password = rstudioapi::askForPassword("Database password")
+)
+
+#code borrowed from https://dbplyr.tidyverse.org/articles/dbplyr.html
+```
+
+
+##Define SQL query to extract required data
+```{r}
+sql <- "SELECT * FROM project2db.RentPrice"
+```
+
+
+##Data is retreived and loaded into a data frame
+```{r}
+medrent <- 
+  dbGetQuery(mdb, sql) %>% 
+  gather(Month,Rent,3:14) %>% #Gather months into rows
+  mutate(Month = as.Date(paste(Month,"-01",sep=""))) %>% #Convert strings to dates 
+  mutate(Month = month(Month,label = TRUE, abbr = FALSE)) #Convert dates to month
+
+head(medrent)
+```
+
+##Find the current (latest) distribution.
+
+```{r}
+medrent12 <- #Create a new df that includes only the latest month
+  medrent %>% 
+  filter(Month == "December")
+```
+
+```{r}
+ggplot(medrent12, aes(Rent, fill = Rent)) +
+  ggtitle("Distribution of Median Rental Price/sqft by State (Dec 2018, Zillow)")+
+  geom_histogram(binwidth = 0.25, fill="steelblue") +
+  theme(legend.position = "none")
+```
+
+```{r fig.width=7, fig.height=8}
+p<-ggplot(data=medrent12, aes(x=reorder(RegionName,Rent), y=Rent), width=.5,position = position_dodge(width = 60)) +
+  ggtitle("Median Rental Price/sqft by State (Dec 2018, Zillow)")+
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal() +
+  #coord_fixed(ratio = 1, xlim = NULL, ylim = NULL) +
+  coord_flip() 
+p
+```
+
+## Yearly % Change by State
+
+```{r}
+medrent2 <- 
+  read_csv("State_MedianRentalPricePerSqft_AllHomes.csv", #Impor the CSV file
+    col_types = cols(SizeRank = col_integer())) %>% 
+  mutate(ychange = ((`2018-12`/`2018-01`)-1)) %>% 
+  select (-c(3:14))
+
+head(medrent2)
+```
+
+```{r fig.width=7, fig.height=8}
+p<-ggplot(data=medrent2, aes(x=reorder(RegionName,ychange), y=ychange), width=.5) +
+  ggtitle("% Chg in Median Rental Price/sqft by State (2018, Zillow)")+
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal() +
+  #coord_fixed(ratio = 1, xlim = NULL, ylim = NULL) +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent)
+p
+```
+
+
+
+ 
